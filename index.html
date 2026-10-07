@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Privacidad: bloquea cualquier petición de red (fetch/XHR/WebSocket) y el envío de formularios -->
+  <meta http-equiv="Content-Security-Policy" content="connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Instagram Follow Checker</title>
+  <meta name="description" content="Descubre quién no te sigue de vuelta en Instagram comparando los archivos HTML de tu descarga de datos. Todo se procesa en tu navegador.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <h1>Instagram Follow Checker</h1>
+      <p class="lead">Compara tus seguidores con las cuentas que sigues y descubre quién no te sigue de vuelta. Solo necesitas los dos archivos HTML de tu descarga de datos de Instagram.</p>
+      <p class="privacy-badge" role="note">
+        🔒 Tus archivos se procesan directamente en tu navegador y no se suben a ningún servidor.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ===== Herramienta ===== -->
+    <section class="card" aria-labelledby="tool-title">
+      <h2 id="tool-title">Compara tus listas</h2>
+      <form id="compare-form" novalidate>
+        <div class="file-grid">
+          <div class="file-field">
+            <label for="followers-file">Archivo de seguidores</label>
+            <input type="file" id="followers-file" multiple accept=".html,.htm,text/html">
+            <p class="hint">Normalmente <code>followers_1.html</code>. Si hay varios (<code>followers_2.html</code>…), selecciónalos todos a la vez.</p>
+            <p class="file-name" id="followers-name">Ningún archivo seleccionado</p>
+          </div>
+          <div class="file-field">
+            <label for="following-file">Archivo de seguidos</label>
+            <input type="file" id="following-file" multiple accept=".html,.htm,text/html">
+            <p class="hint">Normalmente <code>following.html</code></p>
+            <p class="file-name" id="following-name">Ningún archivo seleccionado</p>
+          </div>
+        </div>
+
+        <button type="submit" id="compare-btn" class="btn primary">Comparar listas</button>
+      </form>
+
+      <div id="status" class="status" role="status" aria-live="polite" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span id="status-text">Analizando archivos…</span>
+      </div>
+      <div id="error" class="error" role="alert" hidden></div>
+      <div id="warning" class="warning" role="status" hidden></div>
+    </section>
+
+    <!-- ===== Estado técnico (TEMPORAL): oculto salvo en modo debug (?debug=1 o #debug) ===== -->
+    <section class="card diag" id="tech-status" hidden aria-labelledby="tech-title">
+      <h2 id="tech-title">Estado técnico (temporal)</h2>
+      <pre id="tech-status-out" role="status" aria-live="polite">Esperando…</pre>
+    </section>
+
+    <!-- ===== Resultados ===== -->
+    <section class="card" id="results" aria-labelledby="results-title" hidden>
+      <h2 id="results-title">Resultados</h2>
+
+      <p class="total"><strong id="total-count">0</strong> <span id="total-label">personas no te siguen de vuelta</span></p>
+      <p class="stats" id="stats"></p>
+
+      <div id="results-tools">
+        <div class="toolbar">
+          <input type="search" id="search" placeholder="Buscar usuario…" aria-label="Buscar dentro de los resultados" autocomplete="off">
+          <button type="button" class="btn" id="copy-btn">Copiar lista</button>
+          <button type="button" class="btn" id="download-btn">Descargar .txt</button>
+        </div>
+        <p class="counter" id="counter" aria-live="polite"></p>
+        <ul id="user-list" class="user-list"></ul>
+        <p id="no-matches" class="empty" hidden>Ningún usuario coincide con tu búsqueda.</p>
+      </div>
+
+      <p id="empty-state" class="empty" hidden>🎉 Todas las cuentas que sigues también te siguen. No hay usuarios que mostrar.</p>
+    </section>
+
+    <!-- ===== Diagnóstico temporal (solo visible con ?debug=1) ===== -->
+    <details class="card diag" id="diagnostics" hidden>
+      <summary>Diagnóstico (temporal)</summary>
+      <p class="hint">Solo cuenta lo extraído de cada archivo; no incluye nombres de usuario. Úsalo para comprobar que los archivos reales se interpretan bien.</p>
+      <pre id="diag-output"></pre>
+      <button type="button" class="btn" id="diag-copy">Copiar diagnóstico</button>
+    </details>
+
+    <!-- ===== Instrucciones ===== -->
+    <section class="card" aria-labelledby="howto-title">
+      <h2 id="howto-title">Cómo obtener los archivos desde Instagram</h2>
+      <ol class="steps">
+        <li>Abre Instagram y entra en <strong>Configuración</strong> → <strong>Centro de cuentas</strong>.</li>
+        <li>Selecciona <strong>Tu información y permisos</strong> → <strong>Descargar tu información</strong>.</li>
+        <li>Pulsa <strong>Descargar o transferir información</strong> y elige tu cuenta.</li>
+        <li>Elige <strong>Parte de tu información</strong> y marca <strong>Seguidores y seguidos</strong>.</li>
+        <li>Selecciona <strong>Descargar en el dispositivo</strong>, rango de fechas <strong>Desde el principio</strong> y formato <strong>HTML</strong>.</li>
+        <li>Pulsa <strong>Crear archivos</strong>. Instagram te avisará cuando estén listos (puede tardar desde minutos hasta horas).</li>
+        <li>Descarga el archivo ZIP y descomprímelo.</li>
+        <li>Dentro, abre la carpeta <code>connections/followers_and_following/</code>. Ahí están <code>followers_1.html</code> (seguidores) y <code>following.html</code> (seguidos).</li>
+        <li>Si tienes muchos seguidores, Instagram puede dividirlos en varios archivos (<code>followers_2.html</code>…). Puedes seleccionar varios a la vez en el campo de seguidores.</li>
+      </ol>
+      <p class="hint">Los nombres de los menús pueden cambiar con las actualizaciones de Instagram.</p>
+    </section>
+
+    <!-- ===== Video tutorial (preparado para incorporarlo después) ===== -->
+    <section class="card" aria-labelledby="video-title">
+      <h2 id="video-title">Video tutorial</h2>
+      <!-- Para activarlo: en script.js, define VIDEO_URL con el enlace "embed" de YouTube.
+           También puedes pegar aquí directamente un <iframe> dentro del div. -->
+      <div id="video-container" class="video-box">
+        <p>El video tutorial estará disponible próximamente.</p>
+      </div>
+    </section>
+
+    <!-- ===== Privacidad ===== -->
+    <section class="card" aria-labelledby="privacy-title">
+      <h2 id="privacy-title">Privacidad</h2>
+      <ul class="plain">
+        <li>Los archivos se leen y procesan directamente en tu navegador. <strong>No se suben a ningún servidor.</strong></li>
+        <li>No se almacenan nombres de usuario ni información personal: ni cookies, ni almacenamiento local, ni analíticas.</li>
+        <li>Al cerrar o recargar la página, todo desaparece.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    <p>Herramienta independiente, sin relación con Instagram ni Meta.</p>
+  </footer>
+
+  <!-- DIAGNÓSTICO TEMPORAL: script independiente de script.js (se puede borrar al terminar las pruebas) -->
+  <script>
+  (function () {
+    var STEPS = [
+      ["script", "1. script.js cargado"],
+      ["init", "2. initUI() ejecutado"],
+      ["form", "3. compare-form encontrado"],
+      ["submit", "4. evento submit registrado"],
+      ["click", "5. botón «Comparar listas» presionado"],
+      ["files", "6. archivos recibidos"],
+      ["stage", "7. etapa / error"]
+    ];
+    var state = {};
+    function render() {
+      var out = document.getElementById("tech-status-out");
+      if (!out) return;
+      out.textContent = STEPS.map(function (s) {
+        var v = state[s[0]];
+        var mark = !v ? "·" : v.ok === false ? "✖" : v.ok === true ? "✔" : "…";
+        return mark + " " + s[1] + (v && v.msg ? ": " + v.msg : !v ? ": pendiente" : "");
+      }).join("\n");
+    }
+    window.__diag = { set: function (k, ok, msg) { state[k] = { ok: ok, msg: msg }; render(); } };
+    window.__ifcReady = false;
+
+    // El panel solo se muestra en modo debug: abrir la página con ?debug=1 (o #debug).
+    // Fuera de ese modo el panel permanece oculto, aunque el diagnóstico siga recopilando datos.
+    var DEBUG = /[?&]debug(=1|=true)?(&|$)/.test(location.search) || location.hash === "#debug";
+    if (DEBUG) { var panel = document.getElementById("tech-status"); if (panel) panel.hidden = false; }
+
+    // El botón fue presionado (se registra en fase de captura, antes que cualquier otro código)
+    document.addEventListener("click", function (e) {
+      if (e.target && e.target.closest && e.target.closest("#compare-btn")) {
+        window.__diag.set("click", true, "recibido a las " + new Date().toLocaleTimeString());
+      }
+    }, true);
+
+    // Si el formulario se envía y la lógica no está activa, se cancela el envío nativo
+    // (la CSP lo bloquearía en silencio) y se explica en pantalla.
+    document.addEventListener("submit", function (e) {
+      if (!window.__ifcReady) {
+        e.preventDefault();
+        window.__diag.set("stage", false, "se envió el formulario pero la lógica de script.js NO está activa. Envío nativo cancelado.");
+      }
+    }, true);
+
+    // Errores de JavaScript y de carga de scripts, visibles en la página
+    window.addEventListener("error", function (e) {
+      if (e.target && e.target !== window && e.target.tagName === "SCRIPT") {
+        window.__diag.set("script", false, "no se pudo cargar " + (e.target.getAttribute("src") || "el script") + " (debe estar en la misma carpeta que index.html)");
+      } else {
+        window.__diag.set("stage", false, "ERROR JS: " + (e.message === "Script error." ? "Script error. (con file:// el navegador oculta el detalle; suele ser un error de sintaxis en script.js)" : e.message) + " (" + String(e.filename || "").split("/").pop() + ":" + e.lineno + ")");
+      }
+    }, true);
+    window.addEventListener("unhandledrejection", function (e) {
+      window.__diag.set("stage", false, "ERROR (promesa): " + (e.reason && e.reason.message || e.reason));
+    });
+    window.addEventListener("load", function () {
+      if (!window.__ifcLoaded) window.__diag.set("script", false, "script.js no se ejecutó (falta el archivo, está en otra carpeta o tiene un error)");
+    });
+    render();
+  })();
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
