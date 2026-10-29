@@ -133,6 +133,84 @@ const isDeletedAccount = (user) => /^__deleted__/.test(user);
 
 const profileUrl = (user) => `https://www.instagram.com/${user}/`;
 
+/* ---------- Animaciones (solo presentación; no afectan a la lógica) ---------- */
+
+const prefersReducedMotion = () =>
+  typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** Cuenta de 0 al valor final; el último paso siempre deja el número exacto. */
+function countUp(el, to) {
+  if (prefersReducedMotion() || to < 2 || typeof requestAnimationFrame === "undefined") { el.textContent = to; return; }
+  const dur = Math.min(900, 160 + to * 4), t0 = performance.now();
+  (function frame(t) {
+    const p = Math.min(1, (t - t0) / dur);
+    el.textContent = Math.round(to * (1 - Math.pow(1 - p, 4)));
+    if (p < 1) requestAnimationFrame(frame);
+  })(t0);
+}
+
+/** Dibuja el grafo del hero: conexiones mutuas (verde) y quienes no te siguen (coral, línea a medias). */
+function drawHeroGraph(host) {
+  const NS = "http://www.w3.org/2000/svg", C = 200, N = 11, GHOSTS = new Set([2, 6, 9]);
+  const mk = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const svg = mk("svg", { viewBox: "0 0 400 400", class: "graph-svg", "aria-hidden": "true" });
+  for (let i = 0; i < N; i++) {
+    const ang = (i / N) * Math.PI * 2 - Math.PI / 2, r = 138 + ((i % 3) - 1) * 16;
+    const x = C + r * Math.cos(ang), y = C + r * Math.sin(ang);
+    const ghost = GHOSTS.has(i), kind = ghost ? "ghost" : "mutual", d = (0.5 + i * 0.1).toFixed(2) + "s";
+    const edge = mk("line", { x1: C, y1: C, x2: x.toFixed(1), y2: y.toFixed(1), class: "g-edge " + kind, pathLength: 1 }, svg);
+    edge.style.setProperty("--d", d);
+    const node = mk("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: ghost ? 10 : 11, class: "g-node " + kind }, svg);
+    node.style.setProperty("--d", (0.9 + i * 0.1).toFixed(2) + "s");
+    node.style.setProperty("--ox", (Math.cos(ang) * 26).toFixed(1) + "px");
+    node.style.setProperty("--oy", (Math.sin(ang) * 26).toFixed(1) + "px");
+    if (!ghost) {
+      const pulse = mk("circle", { cx: C, cy: C, r: 3.5, class: "g-pulse" }, svg);
+      pulse.style.setProperty("--dx", (x - C).toFixed(1) + "px");
+      pulse.style.setProperty("--dy", (y - C).toFixed(1) + "px");
+      pulse.style.setProperty("--d2", (1.8 + i * 0.35).toFixed(2) + "s");
+    }
+  }
+  mk("circle", { cx: C, cy: C, r: 28, class: "g-ring" }, svg);
+  mk("circle", { cx: C, cy: C, r: 28, class: "g-me" }, svg);
+  const t = mk("text", { x: C, y: C + 5, class: "g-me-t" }, svg);
+  t.textContent = "tú";
+  host.replaceChildren(svg);
+}
+
+/** Efectos visuales: grafo, aparición al hacer scroll, arrastrar archivos y parallax suave. Nunca rompe la lógica. */
+function initVisuals() {
+  const graph = document.getElementById("hero-graph");
+  if (graph) {
+    drawHeroGraph(graph);
+    if (!prefersReducedMotion() && matchMedia("(pointer: fine)").matches) {
+      document.querySelector(".hero").addEventListener("pointermove", (e) => {
+        const b = graph.getBoundingClientRect();
+        graph.style.setProperty("--px", ((e.clientX - (b.left + b.width / 2)) / innerWidth).toFixed(3));
+        graph.style.setProperty("--py", ((e.clientY - (b.top + b.height / 2)) / innerHeight).toFixed(3));
+      });
+    }
+  }
+  document.querySelectorAll(".steps li").forEach((li, i) => li.style.setProperty("--i", i));
+
+  const targets = document.querySelectorAll(".reveal, .steps, .flow");
+  if (!("IntersectionObserver" in window)) { targets.forEach((el) => el.classList.add("in")); return; }
+  const io = new IntersectionObserver((entries) => entries.forEach((en) => {
+    if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
+  }), { threshold: 0.15 });
+  targets.forEach((el) => io.observe(el));
+
+  document.querySelectorAll(".file-field").forEach((f) => {
+    ["dragenter", "dragover"].forEach((ev) => f.addEventListener(ev, () => f.classList.add("drag")));
+    ["dragleave", "drop"].forEach((ev) => f.addEventListener(ev, () => f.classList.remove("drag")));
+  });
+}
+
 /* ---------- 4. INTERFAZ ---------- */
 
 function initUI() {
@@ -215,6 +293,7 @@ function initUI() {
     els.status.hidden = !on;
     if (text) els.statusText.textContent = text;
     els.btn.disabled = on;
+    els.btn.classList.toggle("is-loading", on);
   };
   const pause = () => new Promise((r) => setTimeout(r, 30)); // deja pintar el "cargando"
   const fileKey = (f) => `${f.name}|${f.size}|${f.lastModified}`;
@@ -301,18 +380,31 @@ function initUI() {
   }
 
   /* -- Render de resultados -- */
-  function renderList(filter = "") {
+  function renderList(filter = "", animate = false) {
     const q = filter.trim().toLowerCase().replace(/^@/, "");
     const visible = q ? allResults.filter((u) => u.includes(q)) : allResults;
 
     const frag = document.createDocumentFragment();
-    visible.forEach((user) => {
+    visible.forEach((user, idx) => {
       const li = document.createElement("li");
+      if (animate && idx < 24) { li.className = "in"; li.style.setProperty("--i", idx); } // solo las primeras filas se animan
       const a = document.createElement("a");
       a.href = profileUrl(user);
       a.target = "_blank";
       a.rel = "noopener noreferrer";
-      a.textContent = "@" + user;
+      const avatar = document.createElement("span");
+      avatar.className = "avatar";
+      avatar.setAttribute("aria-hidden", "true");
+      const initial = document.createElement("span");
+      initial.textContent = (user.match(/[a-z0-9]/) || ["?"])[0];
+      avatar.appendChild(initial);
+      const name = document.createElement("span");
+      name.className = "uname";
+      name.textContent = "@" + user;
+      const view = document.createElement("span");
+      view.className = "view";
+      view.textContent = "Ver perfil";
+      a.append(avatar, name, view);
       li.appendChild(a);
       frag.appendChild(li);
     });
@@ -328,7 +420,7 @@ function initUI() {
   function renderResults(results, followersCount, followingCount, excluded = 0) {
     allResults = results;
     els.results.hidden = false;
-    els.total.textContent = results.length;
+    countUp(els.total, results.length);
     els.totalLabel.textContent = results.length === 1
       ? "persona no te sigue de vuelta" : "personas no te siguen de vuelta";
     els.stats.textContent = `Seguidores: ${followersCount} · Seguidos: ${followingCount}` +
@@ -338,7 +430,7 @@ function initUI() {
     const empty = results.length === 0;
     els.tools.hidden = empty;
     els.emptyState.hidden = !empty;
-    if (!empty) renderList();
+    if (!empty) renderList("", true);
   }
 
   /* -- Evento principal -- */
@@ -438,10 +530,11 @@ function initUI() {
   }
 
   els.copyBtn.addEventListener("click", async () => {
-    const original = "Copiar lista";
+    const label = els.copyBtn.querySelector(".lbl");
     const ok = await copyText(asText());
-    els.copyBtn.textContent = ok ? "¡Copiado!" : "No se pudo copiar";
-    setTimeout(() => (els.copyBtn.textContent = original), 1800);
+    label.textContent = ok ? "¡Copiado!" : "No se pudo copiar";
+    els.copyBtn.classList.toggle("done", ok);
+    setTimeout(() => { label.textContent = "Copiar lista"; els.copyBtn.classList.remove("done"); }, 1800);
   });
 
   diagCopy.addEventListener("click", async () => {
@@ -465,6 +558,7 @@ function initUI() {
 
 // Arranque (solo en navegador)
 function safeInit() {
+  try { initVisuals(); } catch (_) { /* los efectos visuales nunca deben romper la app */ }
   try {
     initUI();
   } catch (err) { // try/catch global temporal: el error se muestra en la página
