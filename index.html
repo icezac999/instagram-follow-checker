@@ -2,132 +2,164 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <!-- Privacidad: bloquea cualquier petición de red (fetch/XHR/WebSocket) y el envío de formularios -->
   <meta http-equiv="Content-Security-Policy" content="connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
   <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
   <title>Instagram Follow Checker</title>
-  <meta name="description" content="Descubre quién no te sigue de vuelta en Instagram comparando los archivos HTML de tu descarga de datos. Todo se procesa en tu navegador.">
+  <meta name="description" content="Descubre quién no te sigue de vuelta en Instagram con los archivos HTML de tu descarga de datos. Todo se procesa en tu navegador.">
+  <script>document.documentElement.classList.add("js");</script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="hero">
-    <div class="wrap">
-      <h1>Instagram Follow Checker</h1>
-      <p class="lead">Compara tus seguidores con las cuentas que sigues y descubre quién no te sigue de vuelta. Solo necesitas los dos archivos HTML de tu descarga de datos de Instagram.</p>
-      <p class="privacy-badge" role="note">
-        🔒 Tus archivos se procesan directamente en tu navegador y no se suben a ningún servidor.
-      </p>
+    <div class="wrap top"><span class="mark" aria-hidden="true"></span><span>Follow Checker</span></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="chip"><span class="dot" aria-hidden="true"></span>Se procesa en tu navegador, sin servidores</p>
+        <h1>
+          <span class="sr-only">Descubre quién no te sigue de vuelta</span>
+          <span class="w" aria-hidden="true"><span style="--i:0">Descubre</span></span>
+          <span class="w" aria-hidden="true"><span style="--i:1">quién no</span></span>
+          <span class="w" aria-hidden="true"><span style="--i:2">te sigue</span></span>
+          <span class="w" aria-hidden="true"><span style="--i:3">de vuelta</span></span>
+        </h1>
+        <p class="lead">Sube los dos archivos HTML de tu descarga de datos de Instagram y mira la lista en segundos.</p>
+        <div class="hero-actions">
+          <a class="btn solid-sun" href="#herramienta">Subir mis archivos</a>
+          <a class="btn ghost-light" href="#como">Cómo conseguirlos</a>
+        </div>
+      </div>
+      <div class="graph" id="hero-graph" aria-hidden="true"></div>
     </div>
   </header>
 
-  <main class="wrap">
-
-    <!-- ===== Herramienta ===== -->
-    <section class="card" aria-labelledby="tool-title">
-      <h2 id="tool-title">Compara tus listas</h2>
-      <form id="compare-form" novalidate>
-        <div class="file-grid">
+  <main>
+    <section class="tool" id="herramienta" aria-labelledby="tool-title">
+      <div class="wrap">
+        <h2 id="tool-title" class="reveal">Compara tus listas</h2>
+        <form id="compare-form" novalidate class="reveal">
+          <div class="file-grid">
           <div class="file-field">
-            <label for="followers-file">Archivo de seguidores</label>
-            <input type="file" id="followers-file" multiple accept=".html,.htm,text/html">
-            <p class="hint">Normalmente <code>followers_1.html</code>. Si hay varios (<code>followers_2.html</code>…), selecciónalos todos a la vez.</p>
-            <p class="file-name" id="followers-name">Ningún archivo seleccionado</p>
+            <input type="file" id="followers-file" multiple accept=".html,.htm,text/html" aria-describedby="followers-file-hint">
+            <div class="drop">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 20h14"/></svg><svg class="ico ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="tick" d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+              <span class="drop-title">Seguidores</span>
+              <span class="drop-hint" id="followers-file-hint">followers_1.html. Si hay varios (followers_2.html…), elígelos todos a la vez.</span>
+              <span class="file-name" id="followers-name">Ningún archivo seleccionado</span>
+            </div>
           </div>
           <div class="file-field">
-            <label for="following-file">Archivo de seguidos</label>
-            <input type="file" id="following-file" multiple accept=".html,.htm,text/html">
-            <p class="hint">Normalmente <code>following.html</code></p>
-            <p class="file-name" id="following-name">Ningún archivo seleccionado</p>
+            <input type="file" id="following-file" multiple accept=".html,.htm,text/html" aria-describedby="following-file-hint">
+            <div class="drop">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 20h14"/></svg><svg class="ico ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="tick" d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+              <span class="drop-title">Seguidos</span>
+              <span class="drop-hint" id="following-file-hint">following.html</span>
+              <span class="file-name" id="following-name">Ningún archivo seleccionado</span>
+            </div>
           </div>
+          </div>
+          <button type="submit" id="compare-btn" class="btn solid-cobalt"><span class="btn-label">Comparar listas</span></button>
+        </form>
+
+        <div id="status" class="status" role="status" aria-live="polite" hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="status-text">Analizando archivos…</span>
         </div>
+        <div id="error" class="error" role="alert" hidden></div>
+        <div id="warning" class="warning" role="status" hidden></div>
 
-        <button type="submit" id="compare-btn" class="btn primary">Comparar listas</button>
-      </form>
-
-      <div id="status" class="status" role="status" aria-live="polite" hidden>
-        <span class="spinner" aria-hidden="true"></span>
-        <span id="status-text">Analizando archivos…</span>
+        <!-- ===== Estado técnico (TEMPORAL): oculto salvo en modo debug (?debug=1 o #debug) ===== -->
+        <section class="diag" id="tech-status" aria-labelledby="tech-title2" hidden>
+          <h2 id="tech-title2">Estado técnico (temporal)</h2>
+          <pre id="tech-status-out" role="status" aria-live="polite">Esperando…</pre>
+        </section>
+        <details class="diag" id="diagnostics" hidden>
+          <summary>Diagnóstico (temporal)</summary>
+          <p class="hint">Solo cuenta lo extraído de cada archivo; no incluye nombres de usuario.</p>
+          <pre id="diag-output"></pre>
+          <button type="button" class="btn quiet" id="diag-copy">Copiar diagnóstico</button>
+        </details>
       </div>
-      <div id="error" class="error" role="alert" hidden></div>
-      <div id="warning" class="warning" role="status" hidden></div>
     </section>
 
-    <!-- ===== Estado técnico (TEMPORAL): oculto salvo en modo debug (?debug=1 o #debug) ===== -->
-    <section class="card diag" id="tech-status" hidden aria-labelledby="tech-title">
-      <h2 id="tech-title">Estado técnico (temporal)</h2>
-      <pre id="tech-status-out" role="status" aria-live="polite">Esperando…</pre>
-    </section>
+    <section class="results" id="results" aria-labelledby="results-title" hidden>
+      <div class="wrap">
+        <h2 id="results-title" class="sr-only">Resultados</h2>
+        <p class="total"><strong id="total-count">0</strong> <span id="total-label">personas no te siguen de vuelta</span></p>
+        <p class="stats" id="stats"></p>
 
-    <!-- ===== Resultados ===== -->
-    <section class="card" id="results" aria-labelledby="results-title" hidden>
-      <h2 id="results-title">Resultados</h2>
-
-      <p class="total"><strong id="total-count">0</strong> <span id="total-label">personas no te siguen de vuelta</span></p>
-      <p class="stats" id="stats"></p>
-
-      <div id="results-tools">
-        <div class="toolbar">
-          <input type="search" id="search" placeholder="Buscar usuario…" aria-label="Buscar dentro de los resultados" autocomplete="off">
-          <button type="button" class="btn" id="copy-btn">Copiar lista</button>
-          <button type="button" class="btn" id="download-btn">Descargar .txt</button>
+        <div id="results-tools">
+          <div class="toolbar">
+            <input type="search" id="search" placeholder="Buscar usuario…" aria-label="Buscar dentro de los resultados" autocomplete="off">
+            <button type="button" class="btn quiet" id="copy-btn"><span class="lbl">Copiar lista</span></button>
+            <button type="button" class="btn quiet" id="download-btn"><span class="lbl">Descargar .txt</span></button>
+          </div>
+          <p class="counter" id="counter" aria-live="polite"></p>
+          <ul id="user-list" class="user-list"></ul>
+          <p id="no-matches" class="empty" hidden>Ningún usuario coincide con tu búsqueda.</p>
         </div>
-        <p class="counter" id="counter" aria-live="polite"></p>
-        <ul id="user-list" class="user-list"></ul>
-        <p id="no-matches" class="empty" hidden>Ningún usuario coincide con tu búsqueda.</p>
-      </div>
-
-      <p id="empty-state" class="empty" hidden>🎉 Todas las cuentas que sigues también te siguen. No hay usuarios que mostrar.</p>
-    </section>
-
-    <!-- ===== Diagnóstico temporal (solo visible con ?debug=1) ===== -->
-    <details class="card diag" id="diagnostics" hidden>
-      <summary>Diagnóstico (temporal)</summary>
-      <p class="hint">Solo cuenta lo extraído de cada archivo; no incluye nombres de usuario. Úsalo para comprobar que los archivos reales se interpretan bien.</p>
-      <pre id="diag-output"></pre>
-      <button type="button" class="btn" id="diag-copy">Copiar diagnóstico</button>
-    </details>
-
-    <!-- ===== Instrucciones ===== -->
-    <section class="card" aria-labelledby="howto-title">
-      <h2 id="howto-title">Cómo obtener los archivos desde Instagram</h2>
-      <ol class="steps">
-        <li>Abre Instagram y entra en <strong>Configuración</strong> → <strong>Centro de cuentas</strong>.</li>
-        <li>Selecciona <strong>Tu información y permisos</strong> → <strong>Descargar tu información</strong>.</li>
-        <li>Pulsa <strong>Descargar o transferir información</strong> y elige tu cuenta.</li>
-        <li>Elige <strong>Parte de tu información</strong> y marca <strong>Seguidores y seguidos</strong>.</li>
-        <li>Selecciona <strong>Descargar en el dispositivo</strong>, rango de fechas <strong>Desde el principio</strong> y formato <strong>HTML</strong>.</li>
-        <li>Pulsa <strong>Crear archivos</strong>. Instagram te avisará cuando estén listos (puede tardar desde minutos hasta horas).</li>
-        <li>Descarga el archivo ZIP y descomprímelo.</li>
-        <li>Dentro, abre la carpeta <code>connections/followers_and_following/</code>. Ahí están <code>followers_1.html</code> (seguidores) y <code>following.html</code> (seguidos).</li>
-        <li>Si tienes muchos seguidores, Instagram puede dividirlos en varios archivos (<code>followers_2.html</code>…). Puedes seleccionar varios a la vez en el campo de seguidores.</li>
-      </ol>
-      <p class="hint">Los nombres de los menús pueden cambiar con las actualizaciones de Instagram.</p>
-    </section>
-
-    <!-- ===== Video tutorial (preparado para incorporarlo después) ===== -->
-    <section class="card" aria-labelledby="video-title">
-      <h2 id="video-title">Video tutorial</h2>
-      <!-- Para activarlo: en script.js, define VIDEO_URL con el enlace "embed" de YouTube.
-           También puedes pegar aquí directamente un <iframe> dentro del div. -->
-      <div id="video-container" class="video-box">
-        <p>El video tutorial estará disponible próximamente.</p>
+        <p id="empty-state" class="empty" hidden>Todas las cuentas que sigues también te siguen. No hay usuarios que mostrar.</p>
       </div>
     </section>
 
-    <!-- ===== Privacidad ===== -->
-    <section class="card" aria-labelledby="privacy-title">
-      <h2 id="privacy-title">Privacidad</h2>
-      <ul class="plain">
-        <li>Los archivos se leen y procesan directamente en tu navegador. <strong>No se suben a ningún servidor.</strong></li>
-        <li>No se almacenan nombres de usuario ni información personal: ni cookies, ni almacenamiento local, ni analíticas.</li>
-        <li>Al cerrar o recargar la página, todo desaparece.</li>
-      </ul>
+    <section class="how" id="como" aria-labelledby="howto-title">
+      <div class="wrap narrow">
+        <h2 id="howto-title" class="reveal">Cómo conseguir los archivos</h2>
+        <ol class="steps">
+          <li>Abre Instagram y entra en <strong>Configuración</strong> → <strong>Centro de cuentas</strong>.</li>
+          <li>Selecciona <strong>Tu información y permisos</strong> → <strong>Descargar tu información</strong>.</li>
+          <li>Pulsa <strong>Descargar o transferir información</strong> y elige tu cuenta.</li>
+          <li>Elige <strong>Parte de tu información</strong> y marca <strong>Seguidores y seguidos</strong>.</li>
+          <li>Selecciona <strong>Descargar en el dispositivo</strong>, rango de fechas <strong>Desde el principio</strong> y formato <strong>HTML</strong>.</li>
+          <li>Pulsa <strong>Crear archivos</strong>. Instagram te avisará cuando estén listos (puede tardar desde minutos hasta horas).</li>
+          <li>Descarga el archivo ZIP y descomprímelo.</li>
+          <li>Abre la carpeta <code>connections/followers_and_following/</code>. Ahí están <code>followers_1.html</code> y <code>following.html</code>.</li>
+          <li>Si tienes muchos seguidores, Instagram los divide en varios archivos (<code>followers_2.html</code>…). Selecciónalos todos a la vez en el campo de seguidores.</li>
+        </ol>
+        <p class="note reveal">Los nombres de los menús pueden cambiar con las actualizaciones de Instagram.</p>
+      </div>
+    </section>
+
+    <section class="video" aria-labelledby="video-title">
+      <div class="wrap narrow">
+        <h2 id="video-title" class="reveal">Video tutorial</h2>
+        <!-- Para activarlo: en script.js define VIDEO_URL con el enlace "embed" de YouTube. -->
+        <div id="video-container" class="video-box reveal">
+          <svg class="play" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor" opacity=".16"/><path d="M10 8.2v7.6l6-3.8z" fill="currentColor"/></svg>
+          <p>El video tutorial estará disponible pronto.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="privacy" aria-labelledby="privacy-title">
+      <div class="wrap privacy-grid">
+        <div>
+          <h2 id="privacy-title" class="reveal">Tus archivos no salen de tu navegador</h2>
+          <ul class="plain reveal">
+            <li>Los archivos se leen y procesan en tu dispositivo. No se suben a ningún servidor.</li>
+            <li>No se guardan nombres de usuario ni datos personales: ni cookies, ni almacenamiento local, ni analíticas.</li>
+            <li>Al cerrar o recargar la página, todo desaparece.</li>
+          </ul>
+        </div>
+        <svg class="flow reveal" viewBox="0 0 360 200" role="img" aria-label="Tu archivo llega a tu navegador y no continúa hacia ningún servidor">
+          <rect class="fl-box" x="8" y="70" width="86" height="60" rx="14"/><text x="51" y="105" text-anchor="middle">Archivo</text>
+          <rect class="fl-box fl-me" x="136" y="62" width="94" height="76" rx="14"/><text x="183" y="105" text-anchor="middle">Tu navegador</text>
+          <rect class="fl-box fl-off" x="272" y="70" width="80" height="60" rx="14"/><text x="312" y="105" text-anchor="middle">Servidor</text>
+          <path class="fl-line" d="M96 100h38"/>
+          <path class="fl-line fl-dash" d="M232 100h38"/>
+          <path class="fl-x" d="M244 88l14 24m0-24-14 24"/>
+        </svg>
+      </div>
     </section>
   </main>
 
-  <footer class="wrap footer">
-    <p>Herramienta independiente, sin relación con Instagram ni Meta.</p>
+  <footer class="foot">
+    <div class="wrap">
+      <p class="foot-name">Instagram Follow Checker</p>
+      <p class="foot-note">Herramienta independiente, sin relación con Instagram ni Meta.</p>
+    </div>
   </footer>
 
   <!-- DIAGNÓSTICO TEMPORAL: script independiente de script.js (se puede borrar al terminar las pruebas) -->
